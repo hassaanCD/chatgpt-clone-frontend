@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Box,
@@ -17,9 +17,9 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,9 +31,9 @@ const Login = () => {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Invalid email or password',
+        description: 'Failed to login. Please check your credentials.',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       })
     } finally {
@@ -42,21 +42,21 @@ const Login = () => {
   }
 
   return (
-    <Box minH="100vh" display="flex" alignItems="center" justifyContent="center">
-      <Box w="400px" p={8} borderWidth={1} borderRadius={8} boxShadow="lg">
-        <VStack spacing={4} align="stretch">
-          <Heading textAlign="center">Login</Heading>
+    <Box minH="100vh" py={12} px={4}>
+      <VStack spacing={8} mx="auto" maxW="lg" py={12} px={6}>
+        <Heading>Login to ChatGPT Clone</Heading>
+        <Box rounded="lg" bg="white" boxShadow="lg" p={8} w="full">
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
+              <FormControl id="email" isRequired>
+                <FormLabel>Email address</FormLabel>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </FormControl>
-              <FormControl isRequired>
+              <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
                 <Input
                   type="password"
@@ -74,14 +74,14 @@ const Login = () => {
               </Button>
             </VStack>
           </form>
-          <Text textAlign="center">
-            Don't have an account?{' '}
-            <Link to="/register" style={{ color: 'blue' }}>
-              Register
-            </Link>
-          </Text>
-        </VStack>
-      </Box>
+        </Box>
+        <Text>
+          Don't have an account?{' '}
+          <Link to="/register" style={{ color: 'blue' }}>
+            Register here
+          </Link>
+        </Text>
+      </VStack>
     </Box>
   )
 }

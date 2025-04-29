@@ -1,28 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
   VStack,
   HStack,
+  Text,
   Input,
   Button,
-  Text,
-  useToast,
   IconButton,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerHeader,
-  DrawerBody,
-  useDisclosure,
-  List,
-  ListItem,
+  useToast,
 } from '@chakra-ui/react'
 import { HamburgerIcon } from '@chakra-ui/icons'
-import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -30,7 +20,7 @@ interface Message {
 }
 
 interface Chat {
-  _id: string
+  id: string
   title: string
   messages: Message[]
 }
@@ -40,85 +30,63 @@ const Chat = () => {
   const [chats, setChats] = useState<Chat[]>([])
   const [currentChat, setCurrentChat] = useState<Chat | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
-    if (!user) {
+    if (!isAuthenticated) {
       navigate('/login')
-      return
+    } else {
+      loadChats()
     }
-    fetchChats()
-  }, [user])
+  }, [isAuthenticated, navigate])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [currentChat?.messages])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  const fetchChats = async () => {
+  const loadChats = async () => {
     try {
-      const response = await axios.get('/chat')
+      const response = await axios.get('/api/chat')
       setChats(response.data)
-      if (response.data.length > 0 && !currentChat) {
+      if (response.data.length > 0) {
         setCurrentChat(response.data[0])
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to fetch chats',
+        description: 'Failed to load chats',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       })
     }
   }
 
-  const createNewChat = async () => {
-    try {
-      const response = await axios.post('/chat')
-      const newChat = response.data
-      setChats([newChat, ...chats])
-      setCurrentChat(newChat)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create new chat',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!message.trim() || !currentChat) return
+  const sendMessage = async () => {
+    if (!message.trim()) return
 
     setIsLoading(true)
-    const userMessage = message
-    setMessage('')
-
     try {
-      const response = await axios.post(
-        `/chat/${currentChat._id}/messages`,
-        { message: userMessage }
-      )
-      setCurrentChat(response.data)
-      setChats(chats.map(chat => 
-        chat._id === response.data._id ? response.data : chat
-      ))
+      const response = await axios.post('/api/chat/message', {
+        chatId: currentChat?.id,
+        message,
+      })
+
+      if (!currentChat) {
+        setCurrentChat(response.data)
+        setChats([response.data, ...chats])
+      } else {
+        const updatedChat = response.data
+        setCurrentChat(updatedChat)
+        setChats(chats.map(chat => 
+          chat.id === updatedChat.id ? updatedChat : chat
+        ))
+      }
+      setMessage('')
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to send message',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       })
     } finally {
@@ -126,116 +94,64 @@ const Chat = () => {
     }
   }
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
   return (
     <Box h="100vh" display="flex">
-      {/* Sidebar */}
-      <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerHeader>
-            <HStack justify="space-between">
-              <Text>Chats</Text>
-              <Button onClick={createNewChat} size="sm">
-                New Chat
-              </Button>
+      <Box w="250px" bg="gray.100" p={4} overflowY="auto">
+        <VStack spacing={4} align="stretch">
+          <Button colorScheme="blue" onClick={() => setCurrentChat(null)}>
+            New Chat
+          </Button>
+          {chats.map(chat => (
+            <HStack
+              key={chat.id}
+              p={2}
+              bg={currentChat?.id === chat.id ? 'blue.100' : 'transparent'}
+              borderRadius="md"
+              cursor="pointer"
+              onClick={() => setCurrentChat(chat)}
+            >
+              <Text noOfLines={1}>{chat.title}</Text>
             </HStack>
-          </DrawerHeader>
-          <DrawerBody>
-            <List spacing={2}>
-              {chats.map(chat => (
-                <ListItem
-                  key={chat._id}
-                  p={2}
-                  borderRadius="md"
-                  bg={currentChat?._id === chat._id ? 'gray.100' : 'transparent'}
-                  cursor="pointer"
-                  onClick={() => {
-                    setCurrentChat(chat)
-                    onClose()
-                  }}
-                >
-                  <Text noOfLines={1}>{chat.title}</Text>
-                </ListItem>
-              ))}
-            </List>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+          ))}
+        </VStack>
+      </Box>
 
-      {/* Main Content */}
       <Box flex={1} display="flex" flexDirection="column">
-        {/* Header */}
-        <HStack p={4} borderBottomWidth={1} justify="space-between">
+        <Box p={4} bg="white" boxShadow="sm">
           <IconButton
-            aria-label="Open menu"
+            aria-label="Menu"
             icon={<HamburgerIcon />}
-            onClick={onOpen}
+            display={{ base: 'block', md: 'none' }}
           />
-          <Button onClick={handleLogout}>Logout</Button>
-        </HStack>
-
-        {/* Messages */}
-        <Box flex={1} overflowY="auto" p={4}>
-          <VStack spacing={4} align="stretch">
-            {currentChat?.messages.map((msg, index) => (
-              <Box
-                key={index}
-                p={4}
-                borderRadius="md"
-                bg={msg.role === 'user' ? 'blue.50' : 'gray.50'}
-                alignSelf={msg.role === 'user' ? 'flex-end' : 'flex-start'}
-                maxW="80%"
-              >
-                <ReactMarkdown
-                  components={{
-                    code({ node, inline, className, children, ...props }) {
-                      const match = /language-(\w+)/.exec(className || '')
-                      return !inline && match ? (
-                        <SyntaxHighlighter
-                          language={match[1]}
-                          PreTag="div"
-                          {...props}
-                        >
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      )
-                    },
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              </Box>
-            ))}
-            <div ref={messagesEndRef} />
-          </VStack>
         </Box>
 
-        {/* Input */}
-        <Box p={4} borderTopWidth={1}>
+        <VStack flex={1} p={4} spacing={4} overflowY="auto">
+          {currentChat?.messages.map((msg, index) => (
+            <Box
+              key={index}
+              alignSelf={msg.role === 'user' ? 'flex-end' : 'flex-start'}
+              bg={msg.role === 'user' ? 'blue.500' : 'gray.200'}
+              color={msg.role === 'user' ? 'white' : 'black'}
+              p={3}
+              borderRadius="lg"
+              maxW="70%"
+            >
+              <Text>{msg.content}</Text>
+            </Box>
+          ))}
+        </VStack>
+
+        <Box p={4} borderTop="1px" borderColor="gray.200">
           <HStack>
             <Input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSendMessage()
-                }
-              }}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             />
             <Button
               colorScheme="blue"
-              onClick={handleSendMessage}
+              onClick={sendMessage}
               isLoading={isLoading}
             >
               Send

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Box,
@@ -14,27 +14,37 @@ import {
 import { useAuth } from '../context/AuthContext'
 
 const Register = () => {
-  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { register } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const { register } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
 
+    setIsLoading(true)
     try {
-      await register(username, email, password)
+      await register(email, password)
       navigate('/chat')
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Registration failed. Please try again.',
+        description: 'Failed to create account',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       })
     } finally {
@@ -43,34 +53,34 @@ const Register = () => {
   }
 
   return (
-    <Box minH="100vh" display="flex" alignItems="center" justifyContent="center">
-      <Box w="400px" p={8} borderWidth={1} borderRadius={8} boxShadow="lg">
-        <VStack spacing={4} align="stretch">
-          <Heading textAlign="center">Register</Heading>
+    <Box minH="100vh" py={12} px={4}>
+      <VStack spacing={8} mx="auto" maxW="lg" py={12} px={6}>
+        <Heading>Create an Account</Heading>
+        <Box rounded="lg" bg="white" boxShadow="lg" p={8} w="full">
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Username</FormLabel>
-                <Input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
+              <FormControl id="email" isRequired>
+                <FormLabel>Email address</FormLabel>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </FormControl>
-              <FormControl isRequired>
+              <FormControl id="password" isRequired>
                 <FormLabel>Password</FormLabel>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                />
+              </FormControl>
+              <FormControl id="confirmPassword" isRequired>
+                <FormLabel>Confirm Password</FormLabel>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </FormControl>
               <Button
@@ -83,14 +93,14 @@ const Register = () => {
               </Button>
             </VStack>
           </form>
-          <Text textAlign="center">
-            Already have an account?{' '}
-            <Link to="/login" style={{ color: 'blue' }}>
-              Login
-            </Link>
-          </Text>
-        </VStack>
-      </Box>
+        </Box>
+        <Text>
+          Already have an account?{' '}
+          <Link to="/login" style={{ color: 'blue' }}>
+            Login here
+          </Link>
+        </Text>
+      </VStack>
     </Box>
   )
 }
