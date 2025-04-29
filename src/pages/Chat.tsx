@@ -44,15 +44,34 @@ const Chat = () => {
 
   const loadChats = async () => {
     try {
-      const response = await axios.get('/api/chat')
+      const response = await axios.get('/chat')
       setChats(response.data)
       if (response.data.length > 0) {
         setCurrentChat(response.data[0])
       }
     } catch (error) {
+      console.error('Load chats error:', error)
       toast({
         title: 'Error',
         description: 'Failed to load chats',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
+  const createNewChat = async () => {
+    try {
+      const response = await axios.post('/chat')
+      const newChat = response.data
+      setChats([newChat, ...chats])
+      setCurrentChat(newChat)
+    } catch (error) {
+      console.error('Create chat error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create new chat',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -65,7 +84,7 @@ const Chat = () => {
 
     setIsLoading(true)
     try {
-      const response = await axios.post('/api/chat/message', {
+      const response = await axios.post('/chat/message', {
         chatId: currentChat?.id,
         message,
       })
@@ -82,6 +101,7 @@ const Chat = () => {
       }
       setMessage('')
     } catch (error) {
+      console.error('Send message error:', error)
       toast({
         title: 'Error',
         description: 'Failed to send message',
@@ -98,7 +118,7 @@ const Chat = () => {
     <Box h="100vh" display="flex">
       <Box w="250px" bg="gray.100" p={4} overflowY="auto">
         <VStack spacing={4} align="stretch">
-          <Button colorScheme="blue" onClick={() => setCurrentChat(null)}>
+          <Button colorScheme="blue" onClick={createNewChat}>
             New Chat
           </Button>
           {chats.map(chat => (
@@ -110,7 +130,7 @@ const Chat = () => {
               cursor="pointer"
               onClick={() => setCurrentChat(chat)}
             >
-              <Text noOfLines={1}>{chat.title}</Text>
+              <Text noOfLines={1}>{chat.title || 'New Chat'}</Text>
             </HStack>
           ))}
         </VStack>

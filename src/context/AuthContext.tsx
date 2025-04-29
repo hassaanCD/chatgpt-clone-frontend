@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import React, { createContext, useState, useContext } from 'react'
+import { createContext, useState, useContext, useEffect } from 'react'
 import axios from 'axios'
 
 interface AuthContextType {
@@ -12,31 +12,50 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 // Set the base URL for all API requests
-axios.defaults.baseURL = 'https://chatgpt-clone-backend.onrender.com'
+axios.defaults.baseURL = 'https://chatgpt-clone-backend.onrender.com/api'
+
+// Add request interceptor to include token
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  // Check for existing token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      setIsAuthenticated(true)
+    }
+  }, [])
+
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password })
+      const response = await axios.post('/auth/login', { email, password })
       if (response.data.token) {
         localStorage.setItem('token', response.data.token)
         setIsAuthenticated(true)
       }
     } catch (error) {
+      console.error('Login error:', error)
       throw error
     }
   }
 
   const register = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/auth/register', { email, password })
+      const response = await axios.post('/auth/register', { email, password })
       if (response.data.token) {
         localStorage.setItem('token', response.data.token)
         setIsAuthenticated(true)
       }
     } catch (error) {
+      console.error('Register error:', error)
       throw error
     }
   }
