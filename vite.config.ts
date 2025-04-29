@@ -6,14 +6,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/chatgpt-clone-frontend/',
   server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
+    port: 3000,
   },
   build: {
     outDir: 'dist',
