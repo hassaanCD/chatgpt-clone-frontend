@@ -12,7 +12,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 // Set the base URL for all API requests
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+axios.defaults.baseURL = 'https://chatgpt-clone-backend.onrender.com'
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
